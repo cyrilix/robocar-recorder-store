@@ -6,7 +6,7 @@ import (
 	"github.com/cyrilix/robocar-base/testtools"
 	"github.com/cyrilix/robocar-protobuf/go/events"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"io/ioutil"
 	"path"
 	"testing"

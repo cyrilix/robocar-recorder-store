@@ -6,8 +6,8 @@ import (
 	"github.com/cyrilix/robocar-base/service"
 	"github.com/cyrilix/robocar-protobuf/go/events"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"os"
 )
