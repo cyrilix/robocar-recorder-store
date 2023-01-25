@@ -8,7 +8,6 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	"io/ioutil"
 	"os"
 )
 
@@ -69,7 +68,7 @@ func (r *Recorder) onRecordMsg(_ mqtt.Client, message mqtt.Message) {
 		l.Errorf("unable to create %v directory: %v", imgDir, err)
 		return
 	}
-	err = ioutil.WriteFile(imgName, msg.GetFrame().GetFrame(), os.FileMode(0755))
+	err = os.WriteFile(imgName, msg.GetFrame().GetFrame(), os.FileMode(0755))
 	if err != nil {
 		l.Errorf("unable to write img file %v: %v", imgName, err)
 		return
@@ -83,15 +82,17 @@ func (r *Recorder) onRecordMsg(_ mqtt.Client, message mqtt.Message) {
 		return
 	}
 	record := Record{
-		UserAngle:     msg.GetSteering().GetSteering(),
-		CamImageArray: imgRef,
+		UserAngle:      msg.GetSteering().GetSteering(),
+		CamImageArray:  imgRef,
+		AutopilotAngle: msg.GetAutopilotSteering().GetSteering(),
+		DriveMode:      msg.GetDriveMode().GetDriveMode().String(),
 	}
 	jsonBytes, err := json.Marshal(&record)
 	if err != nil {
 		l.Errorf("unable to marshal json content: %v", err)
 		return
 	}
-	err = ioutil.WriteFile(recordName, jsonBytes, 0755)
+	err = os.WriteFile(recordName, jsonBytes, 0755)
 	if err != nil {
 		l.Errorf("unable to write json file %v: %v", recordName, err)
 	}
@@ -99,6 +100,8 @@ func (r *Recorder) onRecordMsg(_ mqtt.Client, message mqtt.Message) {
 }
 
 type Record struct {
-	UserAngle     float32 `json:"user/angle,"`
-	CamImageArray string  `json:"cam/image_array,"`
+	UserAngle      float32 `json:"user/angle,"`
+	AutopilotAngle float32 `json:"autopilot/angle,"`
+	CamImageArray  string  `json:"cam/image_array,"`
+	DriveMode      string  `json:"drive/mode,omitempty"`
 }

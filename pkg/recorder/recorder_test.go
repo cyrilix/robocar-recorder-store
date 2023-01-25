@@ -8,6 +8,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -35,12 +36,14 @@ func TestRecorder_onRecordMsg(t *testing.T) {
 				recordSet:  "default",
 			},
 			args: args{
-				message: generateMessage("1", "default", -0.5),
+				message: generateMessage("1", "default", -0.5, 0.6, events.DriveMode_PILOT),
 			},
 			wantJsonFileName: "record_1.json",
 			wantRecord: Record{
-				UserAngle:     -0.5,
-				CamImageArray: "cam/cam-image_array_1.jpg",
+				UserAngle:      -0.5,
+				CamImageArray:  "cam/cam-image_array_1.jpg",
+				AutopilotAngle: 0.6,
+				DriveMode:      events.DriveMode_PILOT.String(),
 			},
 		},
 	}
@@ -50,7 +53,7 @@ func TestRecorder_onRecordMsg(t *testing.T) {
 				recordsDir: tt.fields.recordsDir,
 			}
 			r.onRecordMsg(nil, tt.args.message)
-			fis, err := ioutil.ReadDir(tt.fields.recordsDir)
+			fis, err := os.ReadDir(tt.fields.recordsDir)
 			if err != nil {
 				t.Errorf("unable to list files: %v", err)
 				return
@@ -64,7 +67,7 @@ func TestRecorder_onRecordMsg(t *testing.T) {
 			if fis[0].Name() != tt.name {
 				t.Errorf("bad directory name '%v', want '%v'", fis[0].Name(), tt.fields.recordSet)
 			}
-			records, err := ioutil.ReadDir(path.Join(tt.fields.recordsDir, fis[0].Name()))
+			records, err := os.ReadDir(path.Join(tt.fields.recordsDir, fis[0].Name()))
 			if err != nil {
 				t.Errorf("unable to list record files")
 				return
@@ -113,7 +116,8 @@ func TestRecorder_onRecordMsg(t *testing.T) {
 	}
 }
 
-func generateMessage(id string, recordSet string, userAngle float32) mqtt.Message {
+func generateMessage(id string, recordSet string, userAngle float32, autopilotAngle float32,
+	driveMode events.DriveMode) mqtt.Message {
 	now := time.Now()
 	msg := events.RecordMessage{
 		Frame: &events.FrameMessage{
@@ -130,6 +134,21 @@ func generateMessage(id string, recordSet string, userAngle float32) mqtt.Messag
 		Steering: &events.SteeringMessage{
 			Steering:   userAngle,
 			Confidence: 1.0,
+			FrameRef: &events.FrameRef{
+				Name: fmt.Sprintf("framie-%s", id),
+				Id:   id,
+				CreatedAt: &timestamp.Timestamp{
+					Seconds: now.Unix(),
+					Nanos:   int32(now.Nanosecond()),
+				},
+			},
+		},
+		DriveMode: &events.DriveModeMessage{
+			DriveMode: driveMode,
+		},
+		AutopilotSteering: &events.SteeringMessage{
+			Steering:   autopilotAngle,
+			Confidence: 0.8,
 			FrameRef: &events.FrameRef{
 				Name: fmt.Sprintf("framie-%s", id),
 				Id:   id,
